@@ -40,7 +40,8 @@
 
     <!-- Search Bar -->
     <div class="search-container">
-        <input type="text" id="searchInput" placeholder="Search for products...">
+        <input type="text" id="modelInput" placeholder="Search by model...">
+        <input type="text" id="brandInput" placeholder="Search by brand...">
         <button onclick="searchProducts()">Search</button>
     </div>
 
@@ -54,9 +55,6 @@
             <option value="Lubricants">Lubricants</option>
             <!-- Add more categories as needed -->
         </select>
-
-        <label for="brandFilter">Brand:</label>
-        <input type="text" id="brandFilter" placeholder="Enter brand...">
     </div>
 
     <!-- Product List -->
@@ -80,7 +78,7 @@
                     productCard.className = 'product-card';
 
                     productCard.innerHTML = `
-                        <img src="${product.image_url}" alt="${product.name}">
+                        <img src="${product.image_url}" alt="${product.name}" height="20" width="30">
                         <h3>${product.name}</h3>
                         <p>${product.description}</p>
                         <p><strong>Brand:</strong> ${product.brand}</p>
@@ -98,14 +96,14 @@
 
         // Function to handle search
         function searchProducts() {
-            const searchQuery = document.getElementById('searchInput').value;
+            const modelQuery = document.getElementById('modelInput').value;
+            const brandQuery = document.getElementById('brandInput').value;
             const category = document.getElementById('categoryFilter').value;
-            const brand = document.getElementById('brandFilter').value;
 
             const filters = {};
-            if (searchQuery) filters.name = searchQuery;
+            if (modelQuery) filters.name = modelQuery;
+            if (brandQuery) filters.brand = brandQuery;
             if (category) filters.category = category;
-            if (brand) filters.brand = brand;
 
             fetchProducts(filters);
         }

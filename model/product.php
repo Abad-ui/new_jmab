@@ -34,7 +34,6 @@ class Product {
         if (empty($this->category)) $errors[] = 'Product category is required.';
         if (empty($this->price)) $errors[] = 'Product price is required.';
         if (empty($this->stock)) $errors[] = 'Product stock is required.';
-        if (empty($this->stock)) $errors[] = 'Product stock is required.';
         if (empty($this->image_url)) $errors[] = 'Product image URL is required.';
         if (empty($this->brand)) $errors[] = 'Product brand is required.';
 
@@ -168,21 +167,18 @@ class Product {
             $params[':tags'] = json_encode($data['tags']);
         }
 
-        // If no fields are provided to update, return an error
-        if (empty($updates)) {
-            return ['success' => false, 'errors' => ['No fields provided for update.']];
+        // Combine updates into the query
+        if (!empty($updates)) {
+            $query .= implode(', ', $updates) . ' WHERE product_id = :product_id';
+        } else {
+            return ['success' => false, 'errors' => ['No fields to update.']];
         }
 
-        // Append the updates to the query
-        $query .= implode(', ', $updates);
-        $query .= ' WHERE product_id = :product_id';
-
-        // Prepare the statement
         $stmt = $this->conn->prepare($query);
 
-        // Bind parameters
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        // Bind parameters and execute the query
+        foreach ($params as $param => $value) {
+            $stmt->bindValue($param, $value);
         }
 
         try {
@@ -196,6 +192,7 @@ class Product {
 
         return ['success' => false, 'errors' => ['Unknown error occurred.']];
     }
+
 
     // Delete a product
     public function deleteProduct($product_id) {
@@ -221,8 +218,12 @@ class Product {
     
         // Apply filters dynamically
         if (!empty($filters['brand'])) {
-            $query .= ' AND brand = :brand';
-            $params[':brand'] = $filters['brand'];
+            $query .= ' AND brand LIKE :brand';
+            $params[':brand'] = '%' . $filters['brand'] . '%'; // Partial match for brand
+        }
+        if (!empty($filters['name'])) {
+            $query .= ' AND name LIKE :name';
+            $params[':name'] = '%' . $filters['name'] . '%'; // Partial match for name
         }
         if (!empty($filters['category'])) {
             $query .= ' AND category = :category';
@@ -231,10 +232,6 @@ class Product {
         if (!empty($filters['subcategory'])) {
             $query .= ' AND subcategory = :subcategory';
             $params[':subcategory'] = $filters['subcategory'];
-        }
-        if (!empty($filters['name'])) {
-            $query .= ' AND name LIKE :name';
-            $params[':name'] = '%' . $filters['name'] . '%';
         }
         if (!empty($filters['tags'])) {
             $query .= ' AND JSON_CONTAINS(tags, :tags)';
