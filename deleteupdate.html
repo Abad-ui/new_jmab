@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Update and Delete User</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Test Update and Delete User</h1>
+
+<!-- Update User Form -->
+<form id="updateForm">
+    <h2>Update User</h2>
+    <label for="updateId">User ID:</label>
+    <input type="text" id="updateId" name="id" required>
+
+    <label for="updateFirstName">First Name:</label>
+    <input type="text" id="updateFirstName" name="first_name">
+
+    <label for="updateLastName">Last Name:</label>
+    <input type="text" id="updateLastName" name="last_name">
+
+    <label for="updateEmail">Email:</label>
+    <input type="text" id="updateEmail" name="email">
+
+    <label for="updatePassword">Password:</label>
+    <input type="password" id="updatePassword" name="password">
+
+    <button type="submit">Update User</button>
+</form>
+
+<!-- Delete User Form -->
+<form id="deleteForm">
+    <h2>Delete User</h2>
+    <label for="deleteId">User ID:</label>
+    <input type="text" id="deleteId" name="id" required>
+
+    <button type="submit">Delete User</button>
+</form>
+
+<!-- Response Section -->
+<div id="response" class="response"></div>
+
+<script>
+    document.getElementById('updateForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => {
+            if (value) data[key] = value;
+        });
+
+        fetch('http://localhost/business-jmab/api/update', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa('admin:password123') // Basic Auth
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            document.getElementById('response').innerText = JSON.stringify(result, null, 2);
+        })
+        .catch(error => {
+            document.getElementById('response').innerText = 'Error: ' + error.message;
+        });
+    });
+
+    document.getElementById('deleteForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => {
+            if (value) data[key] = value;
+        });
+
+        fetch('http://localhost/business-jmab/api/delete', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa('admin:password123') // Basic Auth
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            document.getElementById('response').innerText = JSON.stringify(result, null, 2);
+        })
+        .catch(error => {
+            document.getElementById('response').innerText = 'Error: ' + error.message;
+        });
+    });
+</script>
+
+</body>
+</html>

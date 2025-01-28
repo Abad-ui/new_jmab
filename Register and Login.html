@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Register and Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        .form-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+        .form-container h2 {
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .response {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #d9534f;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Register Form -->
+    <div class="form-container">
+        <h2>Register</h2>
+        <form id="registerForm">
+            <div class="input-group">
+                <label for="registerFirstName">First Name:</label>
+                <input type="text" id="registerFirstName" name="first_name" required>
+            </div>
+            <div class="input-group">
+                <label for="registerLastName">Last Name:</label>
+                <input type="text" id="registerLastName" name="last_name" required>
+            </div>
+            <div class="input-group">
+                <label for="registerEmail">Email:</label>
+                <input type="email" id="registerEmail" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="registerPassword">Password:</label>
+                <input type="password" id="registerPassword" name="password" required>
+            </div>
+            <button type="submit" class="button">Register</button>
+        </form>
+        <div class="response" id="registerResponse"></div>
+    </div>
+
+    <!-- Login Form -->
+    <div class="form-container">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="loginEmail">Email:</label>
+                <input type="email" id="loginEmail" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" name="password" required>
+            </div>
+            <button type="submit" class="button">Login</button>
+        </form>
+        <div class="response" id="loginResponse"></div>
+    </div>
+
+    <script>
+        // Handle Register Form Submission
+        document.getElementById('registerForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const formData = {
+        first_name: document.getElementById('registerFirstName').value,
+        last_name: document.getElementById('registerLastName').value,
+        email: document.getElementById('registerEmail').value,
+        password: document.getElementById('registerPassword').value,
+    };
+
+    fetch('http://localhost/business-jmab/api/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)  // Send data as JSON
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('registerResponse').textContent = 'User registered successfully!';
+            document.getElementById('registerResponse').style.color = 'green';
+        } else {
+            document.getElementById('registerResponse').textContent = data.errors.join(', ');
+        }
+    })
+    .catch(error => {
+        document.getElementById('registerResponse').textContent = 'An error occurred during registration.';
+    });
+});
+
+
+        // Handle Login Form Submission
+        document.getElementById('loginForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const formData = {
+        email: document.getElementById('loginEmail').value,
+        password: document.getElementById('loginPassword').value,
+    };
+
+    fetch('http://localhost/business-jmab/api/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)  // Send data as JSON
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('loginResponse').textContent = 'Login successful!';
+            document.getElementById('loginResponse').style.color = 'green';
+            // Optionally, redirect to another page or dashboard after successful login
+            // window.location.href = 'dashboard.html';
+        } else {
+            document.getElementById('loginResponse').textContent = data.errors.join(', ');
+        }
+    })
+    .catch(error => {
+        document.getElementById('loginResponse').textContent = 'An error occurred during login.';
+    });
+});
+
+    </script>
+
+</body>
+</html>
