@@ -1,2 +1,7 @@
 RewriteEngine On
-RewriteRule ^api/(.*)$ api/userRoutes.php?endpoint=$1 [QSA,L]
+
+# Routes for user-related API endpoints
+RewriteRule ^api/user/(.*)$ api/userRoutes.php?endpoint=$1 [QSA,L]
+
+# Routes for product-related API endpoints
+RewriteRule ^api/product/(.*)$ api/productRoutes.php?endpoint=$1 [QSA,L]
