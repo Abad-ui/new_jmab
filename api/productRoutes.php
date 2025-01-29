@@ -1,8 +1,38 @@
 <?php
 require_once '../model/product.php';
+require '../model/user.php'; 
+require '../vendor/autoload.php';
 
 // Handle API routes
 header('Content-Type: application/json');
+
+// Function to check if authenticated user is an admin
+function isAdmin() {
+    $userData = authenticateAPI(); // Validate JWT and get user data
+    return isset($userData['roles']) && in_array('admin', is_array($userData['roles']) ? $userData['roles'] : [$userData['roles']]);
+}
+
+// Authenticate API request using JWT
+function authenticateAPI() {
+    $headers = getallheaders();
+    if (!isset($headers['Authorization'])) {
+        header('HTTP/1.0 401 Unauthorized');
+        echo json_encode(['success' => false, 'errors' => ['Authorization token is required.']]);
+        exit;
+    }
+
+    $authHeader = $headers['Authorization'];
+    $token = str_replace('Bearer ', '', $authHeader);
+
+    $userData = User::validateJWT($token);
+    if (!$userData) {
+        header('HTTP/1.0 401 Unauthorized');
+        echo json_encode(['success' => false, 'errors' => ['Invalid or expired token.']]);
+        exit;
+    }
+
+    return $userData; // Return the decoded user data for use in the API
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'products') {
     $product = new Product();
@@ -18,9 +48,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'products') {
         echo json_encode(['success' => false, 'errors' => ['Product not found.']]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'create') {
+    if (!isAdmin()) {
+        header('HTTP/1.0 403 Forbidden');
+        echo json_encode(['success' => false, 'errors' => ['You do not have permission to create a product.']]);
+        exit;
+    }
+
     $data = json_decode(file_get_contents('php://input'), true);
 
     $product = new Product();
+    // Assign product properties from $data
     $product->name = $data['name'] ?? '';
     $product->description = $data['description'] ?? '';
     $product->category = $data['category'] ?? '';
@@ -43,6 +80,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'products') {
         echo json_encode(['success' => false, 'errors' => $result['errors']]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT' && $_GET['endpoint'] === 'update') {
+    if (!isAdmin()) {
+        header('HTTP/1.0 403 Forbidden');
+        echo json_encode(['success' => false, 'errors' => ['You do not have permission to update a product.']]);
+        exit;
+    }
+
     $data = json_decode(file_get_contents('php://input'), true);
 
     if (empty($data['product_id'])) {
@@ -62,6 +105,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'products') {
         echo json_encode(['success' => false, 'errors' => $result['errors']]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $_GET['endpoint'] === 'delete') {
+    if (!isAdmin()) {
+        header('HTTP/1.0 403 Forbidden');
+        echo json_encode(['success' => false, 'errors' => ['You do not have permission to delete a product.']]);
+        exit;
+    }
+
     $data = json_decode(file_get_contents('php://input'), true);
 
     if (empty($data['product_id'])) {
@@ -98,8 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'products') {
         http_response_code(404);
         echo json_encode(['success' => false, 'errors' => ['No products found.']]);
     }
-} 
-else {
+} else {
     header('HTTP/1.0 404 Not Found');
     echo json_encode(['success' => false, 'errors' => ['Invalid endpoint.']]);
 }

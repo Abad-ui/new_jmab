@@ -2,30 +2,29 @@
 // API Handler
 
 require_once '../model/user.php';
-
+require '../vendor/autoload.php';
 // Authenticate API request
+// Authenticate API request using JWT
+
 function authenticateAPI() {
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])) {
-        header('WWW-Authenticate: Basic realm="API Access"');
+    $headers = getallheaders();
+    if (!isset($headers['Authorization'])) {
         header('HTTP/1.0 401 Unauthorized');
-        echo json_encode(['success' => false, 'errors' => ['Unauthorized.']]);
+        echo json_encode(['success' => false, 'errors' => ['Authorization token is required.']]);
         exit;
     }
 
-    // Get credentials from the request
-    $username = $_SERVER['PHP_AUTH_USER'];
-    $password = $_SERVER['PHP_AUTH_PW'];
+    $authHeader = $headers['Authorization'];
+    $token = str_replace('Bearer ', '', $authHeader);
 
-    // Check against hardcoded credentials
-    $validCredentials = [
-        'admin' => 'password123',
-    ];
-
-    if (!isset($validCredentials[$username]) || $validCredentials[$username] !== $password) {
+    $userData = User::validateJWT($token);
+    if (!$userData) {
         header('HTTP/1.0 401 Unauthorized');
-        echo json_encode(['success' => false, 'errors' => ['Invalid username or password.']]);
+        echo json_encode(['success' => false, 'errors' => ['Invalid or expired token.']]);
         exit;
     }
+
+    return $userData; // Return the decoded user data for use in the API
 }
 
 // Handle API routes
@@ -57,19 +56,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
 
     if ($result['success']) {
         http_response_code(200);
-        echo json_encode(['success' => true, 'message' => $result['message'], 'user' => $result['user']]);
+        echo json_encode(['success' => true, 'message' => $result['message'], 'token' => $result['token'], 'user' => $result['user']]);
     } else {
         http_response_code(400);
         echo json_encode(['success' => false, 'errors' => $result['errors']]);
     }
+
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'users') {
-    authenticateAPI();
+    $userData = authenticateAPI(); // Validate JWT
     $user = new User();
     $users = $user->getUsers();
     
     echo json_encode(['success' => true, 'users' => $users]);
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['endpoint']) && $_GET['endpoint'] === 'user' && isset($_GET['id'])) {
-    authenticateAPI();
+    $userData = authenticateAPI(); // Validate JWT
     $user = new User();
     $userInfo = $user->getUserById($_GET['id']);
     
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
         echo json_encode(['success' => false, 'errors' => ['User not found.']]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT' && $_GET['endpoint'] === 'update') {
-    authenticateAPI(); // Ensure the request is authenticated
+    $userData = authenticateAPI(); // Validate JWT
 
     // Get the input data
     $data = json_decode(file_get_contents('php://input'), true);
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
         echo json_encode(['success' => false, 'errors' => $result['errors']]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $_GET['endpoint'] === 'delete') {
-    authenticateAPI();
+    $userData = authenticateAPI(); // Validate JWT
     $data = json_decode(file_get_contents('php://input'), true);
 
     $user = new User();
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
         http_response_code(200);
         echo json_encode(['success' => true, 'message' => $result['message']]);
     } else {
-        http_response_code(400);  // or 404 if you want a not found error code
+        http_response_code(400);  
         echo json_encode(['success' => false, 'errors' => $result['errors']]);
     }
 }
@@ -134,6 +134,5 @@ else {
     header('HTTP/1.0 404 Not Found');
     echo json_encode(['success' => false, 'errors' => ['Invalid endpoint.']]);
 }
-
 
 ?>

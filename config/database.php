@@ -1,4 +1,5 @@
 <?php
+require '../vendor/autoload.php';
 class Database {
     // DB Params
     private $host = 'localhost';
@@ -8,6 +9,7 @@ class Database {
     private $conn;
 
     // Connect to the database
+    
     public function connect() {
         $this->conn = null;
 
