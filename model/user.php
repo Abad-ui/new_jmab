@@ -1,29 +1,35 @@
 <?php
 require_once '../config/database.php';
 require '../vendor/autoload.php';
+require_once '../config/config.php';
+
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-// User.php
+
 class User {
     private $conn;
     private $table = 'users';
 
-    // User properties
     public $id;
     public $first_name;
     public $last_name;
     public $email;
     public $password;
-    public $roles = 'customer'; // Default role
+    public $roles = 'customer';
 
-    // Constructor
+    
     public function __construct() {
         $database = new Database();
         $this->conn = $database->connect();
     }
 
+    private static function getSecretKey() {
+        
+        return JWT_SECRET_KEY;
+    }
+    
     private function generateJWT($user) {
-        $secretKey = 'testkey'; // 
+        $secretKey = self::getSecretKey(); 
         $issuedAt = time();
         $expirationTime = $issuedAt + 3600; 
 
@@ -38,17 +44,17 @@ class User {
         return JWT::encode($payload, $secretKey, 'HS256');
     }
 
-    // Validate user inputs
+    
     private function validateInput() {
         $errors = [];
 
-        // Check required fields
+        
         if (empty($this->first_name)) $errors[] = 'First name is required.';
         if (empty($this->last_name)) $errors[] = 'Last name is required.';
         if (empty($this->email)) $errors[] = 'Email is required.';
         if (empty($this->password)) $errors[] = 'Password is required.';
 
-        // Email format validation
+        
         if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Invalid email format.';
         }
@@ -56,7 +62,7 @@ class User {
         return $errors;
     }
 
-    // Check if email is already registered
+    
     private function isEmailExists($email, $excludeUserId = null) {
     $query = 'SELECT id FROM ' . $this->table . ' WHERE email = :email';
     
@@ -76,31 +82,28 @@ class User {
     return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
 }
 
-    // Register a new user
+    
     public function register() {
         $errors = $this->validateInput();
 
-        // Check if there are validation errors
+        
         if (!empty($errors)) {
             return ['success' => false, 'errors' => $errors];
         }
 
-        // Check if email is already registered
+        
         if ($this->isEmailExists($this->email)) {
             return ['success' => false, 'errors' => ['Email is already registered.']];
         }
 
-        // Hash the password
         $hashedPassword = password_hash($this->password, PASSWORD_BCRYPT);
 
-        // Insert user into database
         $query = 'INSERT INTO ' . $this->table . ' 
                   (first_name, last_name, email, password, roles, created_at) 
                   VALUES (:first_name, :last_name, :email, :password, :roles, NOW())';
 
         $stmt = $this->conn->prepare($query);
 
-        // Bind parameters
         $stmt->bindParam(':first_name', $this->first_name);
         $stmt->bindParam(':last_name', $this->last_name);
         $stmt->bindParam(':email', $this->email);
@@ -119,8 +122,7 @@ class User {
         return ['success' => false, 'errors' => ['Unknown error occurred.']];
     }
 
-    // Login user
-    // Login user and return JWT
+    
     public function login($email, $password) {
         $result = $this->authenticate($email, $password);
         
@@ -135,11 +137,11 @@ class User {
             ];
         }
 
-        return $result; // Returns the failure result from authenticate method
+        return $result; 
     }
 
     public static function validateJWT($token) {
-        $secretKey = 'testkey'; // Replace with a secure key
+        $secretKey = self::getSecretKey(); 
         try {
             $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
             return (array) $decoded;
@@ -148,7 +150,7 @@ class User {
         }
     }
     
-    // Authenticate user
+   
     public function authenticate($email, $password) {
         $query = 'SELECT * FROM ' . $this->table . ' WHERE email = :email';
         $stmt = $this->conn->prepare($query);
@@ -173,7 +175,7 @@ class User {
         return ['success' => false, 'errors' => ['Invalid email or password.']];
     }
 
-    // Get all users
+    
     public function getUsers() {
         $query = 'SELECT id, first_name, last_name, email, roles FROM ' . $this->table;
         $stmt = $this->conn->prepare($query);
@@ -182,7 +184,7 @@ class User {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Get user by ID
+    
     public function getUserById($id) {
         $query = 'SELECT id, first_name, last_name, email, roles FROM ' . $this->table . ' WHERE id = :id';
         $stmt = $this->conn->prepare($query);
@@ -192,9 +194,9 @@ class User {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Update user details (supports partial updates for any field)
+    
     public function update($id, $data) {
-    // Check if the user exists
+    
     $userExists = $this->getUserById($id);
     if (!$userExists) {
         return ['success' => false, 'errors' => ['User not found.']];
@@ -202,17 +204,17 @@ class User {
 
     $errors = [];
 
-    // Validate email format
+    
     if (isset($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Invalid email format.';
     }
 
-    // Check if the new email is already registered (excluding the current user)
+    
     if (isset($data['email']) && $this->isEmailExists($data['email'], $id)) {
         $errors[] = 'Email is already registered.';
     }
 
-    // If there are validation errors, return them
+    
     if (!empty($errors)) {
         return ['success' => false, 'errors' => $errors];
     }

@@ -5,7 +5,6 @@ class Product {
     private $conn;
     private $table = 'products';
 
-    // Product properties
     public $product_id;
     public $name;
     public $description;
@@ -19,17 +18,15 @@ class Product {
     public $voltage;
     public $tags;
 
-    // Constructor
     public function __construct() {
         $database = new Database();
         $this->conn = $database->connect();
     }
 
-    // Validate product inputs
+    
     private function validateInput() {
         $errors = [];
 
-        // Check required fields
         if (empty($this->name)) $errors[] = 'Product name is required.';
         if (empty($this->category)) $errors[] = 'Product category is required.';
         if (empty($this->price)) $errors[] = 'Product price is required.';
@@ -37,7 +34,6 @@ class Product {
         if (empty($this->image_url)) $errors[] = 'Product image URL is required.';
         if (empty($this->brand)) $errors[] = 'Product brand is required.';
 
-        // Validate category-specific fields
         if ($this->category === 'Tires' && empty($this->size)) {
             $errors[] = 'Size is required for tires.';
         }
@@ -48,7 +44,6 @@ class Product {
         return $errors;
     }
 
-    // Get all products
     public function getProducts() {
         $query = 'SELECT * FROM ' . $this->table;
         $stmt = $this->conn->prepare($query);
@@ -56,7 +51,6 @@ class Product {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Get a single product by ID
     public function getProductById($product_id) {
         $query = 'SELECT * FROM ' . $this->table . ' WHERE product_id = :product_id';
         $stmt = $this->conn->prepare($query);
@@ -65,7 +59,6 @@ class Product {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Create a new product
     public function createProduct() {
         $errors = $this->validateInput();
     
@@ -79,7 +72,6 @@ class Product {
     
         $stmt = $this->conn->prepare($query);
     
-        // Bind parameters
         $stmt->bindParam(':name', $this->name);
         $stmt->bindParam(':description', $this->description);
         $stmt->bindParam(':category', $this->category);
@@ -91,7 +83,6 @@ class Product {
         $stmt->bindParam(':size', $this->size);
         $stmt->bindParam(':voltage', $this->voltage);
     
-        // Assign json_encoded value to a variable before binding it
         $tagsJson = json_encode($this->tags);
         $stmt->bindParam(':tags', $tagsJson);
     
@@ -108,20 +99,16 @@ class Product {
     }
     
 
-    // Update a product
     public function updateProduct($product_id, $data) {
-        // Check if the product exists
         $productExists = $this->getProductById($product_id);
         if (!$productExists) {
             return ['success' => false, 'errors' => ['Product not found.']];
         }
 
-        // Build the SQL query dynamically based on provided fields
         $query = 'UPDATE ' . $this->table . ' SET ';
         $updates = [];
         $params = [':product_id' => $product_id];
 
-        // Add fields to update if they are provided
         if (isset($data['name'])) {
             $updates[] = 'name = :name';
             $params[':name'] = $data['name'];
@@ -167,7 +154,6 @@ class Product {
             $params[':tags'] = json_encode($data['tags']);
         }
 
-        // Combine updates into the query
         if (!empty($updates)) {
             $query .= implode(', ', $updates) . ' WHERE product_id = :product_id';
         } else {
@@ -176,7 +162,6 @@ class Product {
 
         $stmt = $this->conn->prepare($query);
 
-        // Bind parameters and execute the query
         foreach ($params as $param => $value) {
             $stmt->bindValue($param, $value);
         }
@@ -193,8 +178,6 @@ class Product {
         return ['success' => false, 'errors' => ['Unknown error occurred.']];
     }
 
-
-    // Delete a product
     public function deleteProduct($product_id) {
         $query = 'DELETE FROM ' . $this->table . ' WHERE product_id = :product_id';
         $stmt = $this->conn->prepare($query);
@@ -216,14 +199,13 @@ class Product {
         $query = 'SELECT * FROM ' . $this->table . ' WHERE 1=1';
         $params = [];
     
-        // Apply filters dynamically
         if (!empty($filters['brand'])) {
             $query .= ' AND brand LIKE :brand';
-            $params[':brand'] = '%' . $filters['brand'] . '%'; // Partial match for brand
+            $params[':brand'] = '%' . $filters['brand'] . '%'; 
         }
         if (!empty($filters['name'])) {
             $query .= ' AND name LIKE :name';
-            $params[':name'] = '%' . $filters['name'] . '%'; // Partial match for name
+            $params[':name'] = '%' . $filters['name'] . '%';
         }
         if (!empty($filters['category'])) {
             $query .= ' AND category = :category';
@@ -240,7 +222,6 @@ class Product {
     
         $stmt = $this->conn->prepare($query);
     
-        // Bind parameters
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }

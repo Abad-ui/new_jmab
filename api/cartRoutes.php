@@ -1,19 +1,52 @@
 <?php
 require_once '../model/cart.php';
+require '../model/user.php';
 require '../vendor/autoload.php';
 
-// Handle API routes
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'add') {
-    $data = json_decode(file_get_contents('php://input'), true);
+function authenticateAPI() {
+    $headers = getallheaders();
+    if (!isset($headers['Authorization'])) {
+        header('HTTP/1.0 401 Unauthorized');
+        echo json_encode(['success' => false, 'errors' => ['Authorization token is required.']]);
+        exit;
+    }
 
+    $authHeader = $headers['Authorization'];
+    $token = str_replace('Bearer ', '', $authHeader);
+
+    $userData = User::validateJWT($token);
+    if (!$userData) {
+        header('HTTP/1.0 401 Unauthorized');
+        echo json_encode(['success' => false, 'errors' => ['Invalid or expired token.']]);
+        exit;
+    }
+
+    return $userData;
+}
+
+if($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['endpoint']) && $_GET['endpoint'] === 'cart' && isset($_GET['user_id'])) {
+    authenticateAPI();
+    $user_id = $_GET['user_id'];
     $cart = new Cart();
-    $cart->user_id = $data['user_id'] ?? '';
-    $cart->product_id = $data['product_id'] ?? '';
-    $cart->quantity = $data['quantity'] ?? 1;
+    $cartInfo = $cart->getCartByUserId($user_id);
 
-    $result = $cart->addToCart();
+    if (!empty($cartInfo)) {
+        echo json_encode(['success' => true, 'cart' => $cartInfo]);
+    } else {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'errors' => ['Cart not found.']]);
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'createCart') {
+    authenticateAPI();
+    $data = json_decode(file_get_contents('php://input'), true);
+    $cart = new Cart();
+    $user_id = isset($data['user_id']) ? (int)$data['user_id'] : null;
+    $product_id = isset($data['product_id']) ? (int)$data['product_id'] : null;
+    $quantity = isset($data['quantity']) ? (int)$data['quantity'] : null;
+
+    $result = $cart->createCart($user_id, $product_id, $quantity);
 
     if ($result['success']) {
         http_response_code(201);
@@ -22,84 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'add') {
         http_response_code(400);
         echo json_encode(['success' => false, 'errors' => $result['errors']]);
     }
-} elseif ($_SERVER['REQUEST_METHOD'] === 'PUT' && $_GET['endpoint'] === 'update') {
-    $data = json_decode(file_get_contents('php://input'), true);
-
-    if (empty($data['cart_id']) || empty($data['quantity'])) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'errors' => ['Cart ID and quantity are required.']]);
-        exit;
-    }
-
-    $cart = new Cart();
-    $result = $cart->updateCartItem($data['cart_id'], $data['quantity']);
-
-    if ($result['success']) {
-        http_response_code(200);
-        echo json_encode(['success' => true, 'message' => $result['message']]);
-    } else {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'errors' => $result['errors']]);
-    }
-} elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $_GET['endpoint'] === 'remove') {
-    $data = json_decode(file_get_contents('php://input'), true);
-
-    if (empty($data['cart_id'])) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'errors' => ['Cart ID is required.']]);
-        exit;
-    }
-
-    $cart = new Cart();
-    $result = $cart->removeFromCart($data['cart_id']);
-
-    if ($result['success']) {
-        http_response_code(200);
-        echo json_encode(['success' => true, 'message' => $result['message']]);
-    } else {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'errors' => $result['errors']]);
-    }
-} elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'items') {
-    if (empty($_GET['user_id'])) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'errors' => ['User ID is required.']]);
-        exit;
-    }
-
-    $cart = new Cart();
-    $cartItems = $cart->getCartItems($_GET['user_id']);
-
-    if (!empty($cartItems)) {
-        echo json_encode(['success' => true, 'cart_items' => $cartItems]);
-    } else {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'errors' => ['No items found in the cart.']]);
-    }
-
-    
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'checkout') {
-    $data = json_decode(file_get_contents('php://input'), true);
-
-    if (empty($data['user_id'])) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'errors' => ['User ID is required.']]);
-        exit;
-    }
-
-    $cart = new Cart();
-    $result = $cart->checkout($data['user_id']);
-
-    if ($result['success']) {
-        http_response_code(200);
-        echo json_encode(['success' => true, 'message' => $result['message'], 'order_id' => $result['order_id']]);
-    } else {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'errors' => $result['errors']]);
-    }
-} 
-else {
-    header('HTTP/1.0 404 Not Found');
-    echo json_encode(['success' => false, 'errors' => ['Invalid endpoint.']]);
+}else {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'errors' => ['Invalid request.']]);
 }
+
+
 ?>

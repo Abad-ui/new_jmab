@@ -2,17 +2,15 @@
 require_once '../model/product.php';
 require '../model/user.php'; 
 require '../vendor/autoload.php';
+require '../model/product.php';
 
-// Handle API routes
 header('Content-Type: application/json');
 
-// Function to check if authenticated user is an admin
 function isAdmin() {
-    $userData = authenticateAPI(); // Validate JWT and get user data
+    $userData = authenticateAPI(); 
     return isset($userData['roles']) && in_array('admin', is_array($userData['roles']) ? $userData['roles'] : [$userData['roles']]);
 }
 
-// Authenticate API request using JWT
 function authenticateAPI() {
     $headers = getallheaders();
     if (!isset($headers['Authorization'])) {
@@ -31,7 +29,7 @@ function authenticateAPI() {
         exit;
     }
 
-    return $userData; // Return the decoded user data for use in the API
+    return $userData;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'products') {
@@ -57,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'products') {
     $data = json_decode(file_get_contents('php://input'), true);
 
     $product = new Product();
-    // Assign product properties from $data
     $product->name = $data['name'] ?? '';
     $product->description = $data['description'] ?? '';
     $product->category = $data['category'] ?? '';

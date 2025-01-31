@@ -1,10 +1,6 @@
 <?php
-// API Handler
-
 require_once '../model/user.php';
 require '../vendor/autoload.php';
-// Authenticate API request
-// Authenticate API request using JWT
 
 function authenticateAPI() {
     $headers = getallheaders();
@@ -24,10 +20,9 @@ function authenticateAPI() {
         exit;
     }
 
-    return $userData; // Return the decoded user data for use in the API
+    return $userData;
 }
 
-// Handle API routes
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
@@ -63,13 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
     }
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['endpoint'] === 'users') {
-    $userData = authenticateAPI(); // Validate JWT
+    $userData = authenticateAPI(); 
     $user = new User();
     $users = $user->getUsers();
     
     echo json_encode(['success' => true, 'users' => $users]);
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['endpoint']) && $_GET['endpoint'] === 'user' && isset($_GET['id'])) {
-    $userData = authenticateAPI(); // Validate JWT
+    $userData = authenticateAPI();
     $user = new User();
     $userInfo = $user->getUserById($_GET['id']);
     
@@ -80,25 +75,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
         echo json_encode(['success' => false, 'errors' => ['User not found.']]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT' && $_GET['endpoint'] === 'update') {
-    $userData = authenticateAPI(); // Validate JWT
+    $userData = authenticateAPI();
 
-    // Get the input data
     $data = json_decode(file_get_contents('php://input'), true);
-
-    // Validate that the user ID is provided
+ 
     if (empty($data['id'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'errors' => ['User ID is required.']]);
         exit;
     }
 
-    // Create a User instance
     $user = new User();
 
-    // Call the update method with the provided data
     $result = $user->update($data['id'], $data);
 
-    // Return the result
     if ($result['success']) {
         http_response_code(200);
         echo json_encode(['success' => true, 'message' => $result['message']]);
@@ -107,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
         echo json_encode(['success' => false, 'errors' => $result['errors']]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $_GET['endpoint'] === 'delete') {
-    $userData = authenticateAPI(); // Validate JWT
+    $userData = authenticateAPI();
     $data = json_decode(file_get_contents('php://input'), true);
 
     $user = new User();
@@ -116,6 +106,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['endpoint'] === 'register') {
     if (!$id) {
         http_response_code(400);
         echo json_encode(['success' => false, 'errors' => ['User ID is required.']]);
+        exit;
+    }
+
+    $userToDelete = $user->getUserById($id);
+    if ($userToDelete['roles'] === 'admin') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'errors' => ['Admin users cannot be deleted.']]);
         exit;
     }
 
