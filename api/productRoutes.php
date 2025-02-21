@@ -1,5 +1,4 @@
 <?php
-require_once '../model/product.php';
 require '../model/user.php'; 
 require '../vendor/autoload.php';
 require '../model/product.php';
