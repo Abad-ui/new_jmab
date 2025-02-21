@@ -37,7 +37,7 @@ class Order {
     // Create PayMongo Payment Link
     public function createPaymentLink($amount, $description) {
         $client = new Client();
-        $api_key = 'sk_test_upzoTe7kRXHL9TGogLFjuaji'; // Replace with your actual secret key
+        $api_key = ''; // Replace with your actual secret key
     
         try {
             $response = $client->request('POST', 'https://api.paymongo.com/v1/links', [
